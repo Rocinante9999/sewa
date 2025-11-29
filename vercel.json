@@ -1,0 +1,25 @@
+{
+    "version": 2,
+    "framework": null,
+    "functions": {
+        "api/index.php": { "runtime": "vercel-php@0.7.0" }
+    },
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/api/index.php"
+        }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "true",
+        "APP_URL": "https://sewainstan.vercel.app",
+        "APP_KEY": "base64:970HSRxUaFjHJ0f4x6yBEH+aL2Vh6F52HVx63PeATIo=",
+        "DB_CONNECTION": "pgsql",
+        "DB_HOST": "aws-1-ap-southeast-1.pooler.supabase.com",
+        "DB_PORT": "5432",
+        "DB_DATABASE": "postgres",
+        "DB_USERNAME": "postgres.kvbdbtjqdbnqhbpippre",
+        "DB_PASSWORD": "abogoboga789"
+    }
+}
