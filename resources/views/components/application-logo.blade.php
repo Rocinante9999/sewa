@@ -1,0 +1,1 @@
+<img src="/logo.webp" alt="Sewa Instan" class="h-10 w-100" />
