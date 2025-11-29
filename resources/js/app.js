@@ -4,7 +4,7 @@ import '../css/app.css';
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import { Ziggy } from './ziggy'; // Mengarah ke file ziggy.js di folder yang sama
 import Alpine from 'alpinejs';
 
 // PERBAIKAN: Gunakan nama aplikasi Anda sebagai fallback
