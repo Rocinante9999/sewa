@@ -2,47 +2,69 @@
 
 /*
 |--------------------------------------------------------------------------
-| 1. Register The Auto Loader (WAJIB PERTAMA)
+| 1. Register The Auto Loader
 |--------------------------------------------------------------------------
-| Baris ini memuat semua class library Laravel. Tanpa ini, akan muncul error
-| "Class Illuminate\Foundation\Application not found".
 */
 require __DIR__ . '/../vendor/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
-| 2. Turn On The Lights
+| 2. VERCEL READ-ONLY FILESYSTEM FIX (FULL VERSION)
 |--------------------------------------------------------------------------
-| Memuat instance aplikasi Laravel.
+| Kita siapkan folder /tmp sebelum Laravel menyala.
+*/
+
+// Tentukan lokasi folder sementara
+$tmpPath = '/tmp/laravel-project';
+
+// Daftar folder yang wajib ada dan writable
+$dirs = [
+    $tmpPath . '/storage/framework/views',
+    $tmpPath . '/storage/framework/cache',
+    $tmpPath . '/storage/framework/sessions',
+    $tmpPath . '/storage/app',
+    $tmpPath . '/storage/logs',
+    $tmpPath . '/bootstrap/cache', // <--- Folder penting untuk error Anda saat ini
+];
+
+// Buat folder-folder tersebut jika belum ada
+foreach ($dirs as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
+}
+
+// --- MAGIC STEP: OVERRIDE LOKASI CACHE BOOTSTRAP ---
+// Memaksa Laravel menulis file cache sistem (packages.php, services.php) ke /tmp
+// Inilah solusi untuk error "The bootstrap/cache directory must be present and writable"
+$pkgPath = $tmpPath . '/bootstrap/cache';
+putenv("APP_PACKAGES_CACHE={$pkgPath}/packages.php");
+putenv("APP_SERVICES_CACHE={$pkgPath}/services.php");
+putenv("APP_CONFIG_CACHE={$pkgPath}/config.php");
+putenv("APP_ROUTES_CACHE={$pkgPath}/routes-v7.php");
+putenv("APP_EVENTS_CACHE={$pkgPath}/events.php");
+
+// Override lokasi view compiled (blade)
+putenv("VIEW_COMPILED_PATH={$tmpPath}/storage/framework/views");
+
+/*
+|--------------------------------------------------------------------------
+| 3. Turn On The Lights
+|--------------------------------------------------------------------------
 */
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
 /*
 |--------------------------------------------------------------------------
-| 3. FIX VERCEL READ-ONLY FILESYSTEM
+| 4. Pindahkan Storage Path Aplikasi
 |--------------------------------------------------------------------------
-| Memindahkan lokasi penyimpanan cache/log ke folder /tmp (temporary)
-| karena Vercel memblokir penulisan ke folder project asli.
 */
-$storage = '/tmp/storage';
-
-if (!is_dir($storage)) {
-    // Buat semua folder yang dibutuhkan Laravel secara manual
-    mkdir($storage . '/framework/views', 0777, true);
-    mkdir($storage . '/framework/cache', 0777, true);
-    mkdir($storage . '/framework/sessions', 0777, true);
-    mkdir($storage . '/app', 0777, true);
-    mkdir($storage . '/logs', 0777, true);
-}
-
-// Perintahkan Laravel menggunakan path storage baru ini
-$app->useStoragePath($storage);
+$app->useStoragePath($tmpPath . '/storage');
 
 /*
 |--------------------------------------------------------------------------
-| 4. Run The Application
+| 5. Run The Application
 |--------------------------------------------------------------------------
-| Menjalankan request dan mengirimkan response kembali ke browser.
 */
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
