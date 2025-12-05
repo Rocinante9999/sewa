@@ -7,16 +7,42 @@ use App\Models\Rental;
 use App\Models\SellerProfile;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage; 
 
 class RentalController extends Controller
 {
     /**
-     * Menampilkan form sewa atau halaman error yang sesuai menggunakan Blade.
+     * Fungsi upload ke Litterbox (Catbox temporary upload)
+     */
+    private function uploadToLitterbox($file)
+    {
+        $curl = curl_init();
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => "https://litterbox.catbox.moe/resources/internals/api.php",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => [
+                "reqtype"       => "fileupload",
+                "time"          => "72h", // bisa 1h, 12h, 24h, 72h
+                "fileToUpload"  => curl_file_create(
+                    $file->getRealPath(),
+                    $file->getMimeType(),
+                    $file->getClientOriginalName()
+                ),
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        curl_close($curl);
+
+        return $response; // hasil berupa URL string
+    }
+
+    /**
+     * Menampilkan form sewa atau error
      */
     public function showRentalForm(Item $item)
     {
-        // Kondisi 1: Item sedang disewa
         if ($item->status !== 'available') {
             $rental = Rental::where('item_id', $item->id)
                             ->where('payment_status', 'approved')
@@ -34,14 +60,23 @@ class RentalController extends Controller
 
         return view('rental.form', compact('item', 'sellerProfile'));
     }
-    
+
     private function hasPaymentMethod(SellerProfile $profile): bool
     {
-        $bankFilled = $profile->payment_bank_name && $profile->payment_account_number && $profile->payment_account_name;
-        $ewalletFilled = $profile->ovo_number || $profile->gopay_number || $profile->dana_number;
+        $bankFilled = $profile->payment_bank_name &&
+                      $profile->payment_account_number &&
+                      $profile->payment_account_name;
+
+        $ewalletFilled = $profile->ovo_number ||
+                         $profile->gopay_number ||
+                         $profile->dana_number;
+
         return $bankFilled || $ewalletFilled;
     }
 
+    /**
+     * Proses rental + upload gambar ke Litterbox
+     */
     public function processRental(Request $request)
     {
         $validated = $request->validate([
@@ -57,38 +92,41 @@ class RentalController extends Controller
 
         $item = Item::findOrFail($validated['item_id']);
 
-        $identityCardPath = $request->file('renter_identity_card_path')->store('identity_cards', 'public');
+        // ⬇️ Upload ke Litterbox
+        $identityCardUrl = $this->uploadToLitterbox($request->file('renter_identity_card_path'));
+        $paymentProofUrl = $this->uploadToLitterbox($request->file('payment_proof'));
 
-        $paymentProofPath = $request->file('payment_proof')->store('payment_proofs', 'public');
-
+        // Hitung total harga
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
         $durationInDays = $startDate->diffInDays($endDate) + 1;
         $totalPrice = $durationInDays * $item->price_per_day;
 
+        // Simpan rental ke database
         $rental = Rental::create([
             'item_id' => $item->id,
             'renter_name' => $validated['renter_name'],
             'renter_phone' => $validated['renter_phone'],
-            'renter_identity_card_path' => $identityCardPath,
+
+            // ⬇️ SIMPAN URL, bukan path storage
+            'renter_identity_card_path' => $identityCardUrl,
+            'payment_proof_path' => $paymentProofUrl,
+
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'total_price' => $totalPrice,
             'payment_method' => $validated['payment_method'],
-            'payment_proof_path' => $paymentProofPath, 
             'payment_status' => 'waiting_confirmation',
         ]);
-        
-        // Redirect ke halaman sukses Blade
+
         return redirect()->route('rental.success', $rental);
     }
 
     /**
-     * Menampilkan halaman sukses setelah submit form menggunakan Blade.
+     * Halaman sukses
      */
     public function showSuccess(Rental $rental)
     {
         return view('rental.success', compact('rental'));
     }
 }
-

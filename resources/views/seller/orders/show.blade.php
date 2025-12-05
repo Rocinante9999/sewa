@@ -43,7 +43,7 @@
                              <div>
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Foto KTP</h3>
                                 {{-- PERBAIKAN: Ganti asset() dengan Storage::url() --}}
-                                <img src="{{ Storage::url($rental->renter_identity_card_path) }}" alt="Foto KTP" class="enlargeable-image mt-2 rounded-lg border w-full max-w-xs hover:opacity-80 transition cursor-pointer">
+                                <img src="{{ $rental->renter_identity_card_path }}" alt="Foto KTP" class="enlargeable-image mt-2 rounded-lg border w-full max-w-xs hover:opacity-80 transition cursor-pointer">
                             </div>
                         </div>
 
@@ -52,7 +52,7 @@
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Bukti Pembayaran</h3>
                                 {{-- PERBAIKAN: Ganti asset() dengan Storage::url() --}}
-                                <img src="{{ Storage::url($rental->payment_proof_path) }}" alt="Bukti Pembayaran" class="enlargeable-image mt-2 rounded-lg border w-full max-w-xs hover:opacity-80 transition cursor-pointer">
+                                <img src="{{ $rental->payment_proof_path }}" alt="Bukti Pembayaran" class="enlargeable-image mt-2 rounded-lg border w-full max-w-xs hover:opacity-80 transition cursor-pointer">
                             </div>
 
                             @if($rental->payment_status == 'waiting_confirmation')
